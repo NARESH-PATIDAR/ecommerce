@@ -154,3 +154,6 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
 }
+
+# Email Settings for Password Reset (Console Backend for testing)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
