@@ -4,7 +4,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import RegisterSerializer, UserSerializer, CustomTokenObtainPairSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+from .serializers import (
+    RegisterSerializer, UserSerializer, CustomTokenObtainPairSerializer,
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
+    SellerProfileSerializer, CustomerProfileSerializer,
+)
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -13,10 +17,23 @@ from django.core.mail import send_mail
 
 User = get_user_model()
 
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
+class RegisterView(APIView):
     permission_classes = (AllowAny,)
-    serializer_class = RegisterSerializer
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response(
+                {"message": "User created successfully"},
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 class LogoutView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -34,6 +51,42 @@ class LogoutView(APIView):
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
+
+class ProfileView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        user_data = UserSerializer(request.user).data
+        if request.user.is_seller and hasattr(request.user, 'seller_profile'):
+            user_data['profile'] = SellerProfileSerializer(request.user.seller_profile).data
+        elif request.user.is_customer and hasattr(request.user, 'customer_profile'):
+            user_data['profile'] = CustomerProfileSerializer(request.user.customer_profile).data
+
+        return Response(user_data)
+
+    def put(self, request):
+        if request.user.is_seller and hasattr(request.user, 'seller_profile'):
+            serializer = SellerProfileSerializer(
+                request.user.seller_profile, data=request.data, partial=True
+            )
+        elif request.user.is_customer and hasattr(request.user, 'customer_profile'):
+            serializer = CustomerProfileSerializer(
+                request.user.customer_profile, data=request.data, partial=True
+            )
+        else:
+            return Response(
+                {"error": "Profile not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
 class PasswordResetRequestView(APIView):
     permission_classes = (AllowAny,)
 
@@ -46,8 +99,8 @@ class PasswordResetRequestView(APIView):
             uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
             token = PasswordResetTokenGenerator().make_token(user)
             
-            # Use localhost:3000 for local testing, frontend will replace this
-            reset_url = f"http://localhost:3000/reset-password/{uidb64}/{token}/"
+            # Use localhost:5173 for local testing with Vite
+            reset_url = f"http://localhost:5173/reset-password/{uidb64}/{token}/"
             
             send_mail(
                 subject='Password Reset Request',
@@ -58,6 +111,8 @@ class PasswordResetRequestView(APIView):
             )
             return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class PasswordResetConfirmView(APIView):
     permission_classes = (AllowAny,)
