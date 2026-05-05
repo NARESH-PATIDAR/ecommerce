@@ -13,7 +13,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
-from django.core.mail import send_mail
+from .tasks import send_password_reset_email
 
 User = get_user_model()
 
@@ -102,12 +102,11 @@ class PasswordResetRequestView(APIView):
             # Use localhost:5173 for local testing with Vite
             reset_url = f"http://localhost:5173/reset-password/{uidb64}/{token}/"
             
-            send_mail(
+            send_password_reset_email.delay(
                 subject='Password Reset Request',
                 message=f'Click the link to reset your password: {reset_url}',
                 from_email='noreply@ecommerce.com',
                 recipient_list=[user.email],
-                fail_silently=False,
             )
             return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

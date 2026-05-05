@@ -1,11 +1,24 @@
 from pathlib import Path
 from datetime import timedelta
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="https://52651ccbea43b3cd811424bb73e93d7c@o4511337010757632.ingest.de.sentry.io/4511337017835600",
+    send_default_pii=True,
+)
+
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-xr$x(#88&n0m9zm$4^^&vy=xx0@1lh&h@ftv-r0xu%6%szm9+n'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -29,6 +42,8 @@ INSTALLED_APPS = [
 
     # Local apps
     'users',
+    'products',
+    'orders',
 ]
 
 MIDDLEWARE = [
@@ -94,6 +109,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 
+# Media files (Uploaded by users)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -122,8 +141,13 @@ SIMPLE_JWT = {
     'UPDATE_LAST_LOGIN': True,
 }
 
-# Email Settings for Password Reset (Console Backend for testing)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email Settings for Password Reset (Actual SMTP Configuration)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Or your email provider's SMTP server
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')  # Your email address
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')  # Your App Password
 
 # CORS Settings (allow local frontend to talk to Django backend)
 CORS_ALLOWED_ORIGINS = [
@@ -132,3 +156,11 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5500',
     'http://localhost:3000',
 ]
+
+# Celery Settings
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
