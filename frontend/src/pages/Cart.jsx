@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Cart() {
     const { tokens } = useAuth();
+    const navigate = useNavigate();
     const [cart, setCart] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -131,7 +132,10 @@ export default function Cart() {
                             <span>Total:</span>
                             <span>${cart.cart_total}</span>
                         </div>
-                        <button style={{ width: '100%', padding: '12px', fontSize: '1.1em', background: '#28a745' }}>
+                        <button 
+                            onClick={() => navigate('/checkout')}
+                            style={{ width: '100%', padding: '12px', fontSize: '1.1em', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        >
                             Proceed to Checkout
                         </button>
                     </div>

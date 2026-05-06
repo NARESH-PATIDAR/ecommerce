@@ -7,6 +7,9 @@ import Profile from './pages/Profile';
 import SellerDashboard from './pages/SellerDashboard';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import PaymentSuccess from './pages/PaymentSuccess';
+
 
 function App() {
   return (
@@ -21,6 +24,8 @@ function App() {
           <Route path="/seller-dashboard" element={<SellerDashboard />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
         </Routes>
       </Router>
     </AuthProvider>

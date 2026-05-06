@@ -98,13 +98,21 @@ class PasswordResetRequestView(APIView):
             
             uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
             token = PasswordResetTokenGenerator().make_token(user)
+
+            print("====================================")
+            print("UID: ", uidb64)
+            print("TOKEN: ", token)
+            print("====================================")
             
-            # Use localhost:5173 for local testing with Vite
-            reset_url = f"http://localhost:5173/reset-password/{uidb64}/{token}/"
+            # Correct link including the frontend_2 folder
+            reset_url = f"http://127.0.0.1:5500/frontend_2/reset-password-confirm.html?uid={uidb64}&token={token}"
+            print("Reset URL: ", reset_url)
+            print("====================================")
+
             
             send_password_reset_email.delay(
                 subject='Password Reset Request',
-                message=f'Click the link to reset your password: {reset_url}',
+                message=reset_url,
                 from_email='noreply@ecommerce.com',
                 recipient_list=[user.email],
             )
@@ -117,6 +125,12 @@ class PasswordResetConfirmView(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request, uidb64, token):
+
+        print("====================================")
+        print("UID: ", uidb64)
+        print("TOKEN: ", token)
+        print("====================================")
+        
         serializer = PasswordResetConfirmSerializer(data=request.data)
         if serializer.is_valid():
             try:
