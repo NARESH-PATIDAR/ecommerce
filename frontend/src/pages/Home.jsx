@@ -1,102 +1,118 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import api from '../api/axios';
 
-export default function Home() {
-    const { tokens } = useAuth();
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [message, setMessage] = useState({ text: '', type: '' });
+const Home = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState('');
+  const token = localStorage.getItem("myToken");
+  const navigate = useNavigate();
 
-    const showMessage = (text, type = 'error') => {
-        setMessage({ text, type });
-        setTimeout(() => setMessage({ text: '', type: '' }), 5000);
-    };
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
-    useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                const response = await fetch('/api/products/');
-                if (response.ok) {
-                    const data = await response.json();
-                    setProducts(data);
-                } else {
-                    setError('Failed to fetch products');
-                }
-            } catch (err) {
-                setError('Server error');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchProducts();
-    }, []);
+  const loadProducts = async () => {
+    try {
+      const response = await api.get("products/");
+      setProducts(response.data);
+    } catch (err) {
+      console.error(err);
+      setMsg("Failed to load products.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleAddToCart = async (productId) => {
-        if (!tokens) {
-            return showMessage('Please log in to add items to your cart.');
-        }
+  const addToCart = async (productId) => {
+    if (!token) {
+      alert("Please login to add items to your cart.");
+      navigate("/");
+      return;
+    }
 
-        try {
-            const response = await fetch('/api/orders/cart/add/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${tokens.access}`
-                },
-                body: JSON.stringify({ product_id: productId, quantity: 1 })
-            });
-            
-            if (response.ok) {
-                showMessage('Added to cart!', 'success');
-            } else {
-                const data = await response.json();
-                showMessage(data.error || 'Failed to add to cart');
-            }
-        } catch (err) {
-            showMessage('Server Error');
-        }
-    };
+    try {
+      await api.post("orders/cart/add/", { product_id: productId, quantity: 1 });
+      
+      setMsg("Added to cart!");
+      setTimeout(() => { setMsg(""); }, 3000);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Failed to add to cart");
+    }
+  };
 
-    if (loading) return <div className="container">Loading products...</div>;
-    if (error) return <div className="container message error">{error}</div>;
+  const gridStyle = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: '20px',
+  };
 
-    return (
-        <div className="container">
-            <h2>Latest Products</h2>
-            {message.text && <div className={`message ${message.type}`} style={{ position: 'sticky', top: '10px', zIndex: 100 }}>{message.text}</div>}
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px', marginTop: '20px' }}>
-                {products.length === 0 ? (
-                    <p>No products available right now.</p>
+  const cardStyle = {
+    width: '250px',
+    padding: '15px',
+    textAlign: 'left',
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+  };
+
+  const imageContainerStyle = {
+    width: '100%',
+    height: '150px',
+    backgroundColor: '#eee',
+    marginBottom: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  };
+
+  return (
+    <div>
+      <h2>Latest Products</h2>
+      <div style={{ color: 'green', marginBottom: '10px' }}>{msg}</div>
+
+      <div style={gridStyle}>
+        {loading ? (
+          <p>Loading products...</p>
+        ) : products.length === 0 ? (
+          <p>No products available right now.</p>
+        ) : (
+          products.map(p => (
+            <div key={p.id} style={cardStyle}>
+              <div style={imageContainerStyle}>
+                {p.image ? (
+                  <img src={p.image} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                    products.map(product => (
-                        <div key={product.id} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
-                            {product.image && (
-                                <img src={product.image} alt={product.title} style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                            )}
-                            <h3 style={{ margin: '10px 0' }}>{product.title}</h3>
-                            <p style={{ color: '#555', fontSize: '0.9em' }}>{product.category_name}</p>
-                            <p style={{ fontWeight: 'bold', fontSize: '1.2em' }}>${product.price}</p>
-                            <p style={{ fontSize: '0.85em', color: '#777', flexGrow: 1 }}>Sold by: {product.seller_store || product.seller_name}</p>
-                            
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                                <Link to={`/product/${product.id}`} style={{ flex: 1, textAlign: 'center', background: '#007bff', color: 'white', padding: '8px 12px', textDecoration: 'none', borderRadius: '4px' }}>
-                                    View Details
-                                </Link>
-                                <button 
-                                    onClick={() => handleAddToCart(product.id)}
-                                    disabled={product.stock === 0}
-                                    style={{ flex: 1, background: product.stock === 0 ? '#ccc' : '#28a745', color: 'white', padding: '8px 12px', border: 'none', borderRadius: '4px', cursor: product.stock === 0 ? 'not-allowed' : 'pointer' }}
-                                >
-                                    {product.stock === 0 ? 'Out of Stock' : '+ Add to Cart'}
-                                </button>
-                            </div>
-                        </div>
-                    ))
+                  "No Image"
                 )}
+              </div>
+              <h3>{p.title}</h3>
+              <p>Category: {p.category_name}</p>
+              <p><b>${p.price}</b></p>
+              <p>Stock: {p.stock}</p>
+              <p>Sold by: {p.seller_store || p.seller_name}</p>
+              
+              <div>
+                <Link to={`/product/${p.id}`} style={{ color: 'blue', textDecoration: 'underline', marginRight: '10px' }}>
+                  View Details
+                </Link>
+                <button 
+                  onClick={() => addToCart(p.id)} 
+                  disabled={p.stock === 0}
+                  style={{ backgroundColor: 'green', color: 'white' }}
+                >
+                  {p.stock === 0 ? "Out of Stock" : "Add to Cart"}
+                </button>
+              </div>
             </div>
-        </div>
-    );
-}
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Home;

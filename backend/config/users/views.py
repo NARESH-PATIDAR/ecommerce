@@ -105,7 +105,7 @@ class PasswordResetRequestView(APIView):
             print("====================================")
             
             # Correct link including the frontend_2 folder
-            reset_url = f"http://127.0.0.1:5500/frontend_2/reset-password-confirm.html?uid={uidb64}&token={token}"
+            reset_url = f"http://localhost:8000/api/users/password-reset-confirm?uid={uidb64}&token={token}"
             print("Reset URL: ", reset_url)
             print("====================================")
 
